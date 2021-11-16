@@ -65,41 +65,145 @@
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
-/** @brief Function for main application entry.
- */
+
+static void my_timer_init(void)
+{
+    NRF_TIMER0->PRESCALER = 0;
+    NRF_TIMER0->BITMODE = TIMER_BITMODE_BITMODE_32Bit <<TIMER_BITMODE_BITMODE_Pos;
+    
+    NRF_PPI->CH[0].EEP = (uint32_t)&NRF_RTC0->EVENTS_TICK;
+    NRF_PPI->CH[0].TEP = (uint32_t)&NRF_TIMER0->TASKS_CAPTURE[0];
+    NRF_PPI->CHENSET = (1 << 0);
+    
+    NRF_RTC0->EVTENSET = RTC_EVTENSET_TICK_Msk;
+    NRF_RTC0->INTENSET = RTC_INTENSET_TICK_Msk;
+    NRF_RTC0->PRESCALER = 0;
+    NVIC_SetPriority(RTC0_IRQn, 7);
+    NVIC_EnableIRQ(RTC0_IRQn);
+    
+    NRF_TIMER0->TASKS_START = 1;
+    NRF_RTC0->TASKS_CLEAR = 1;
+    NRF_RTC0->TASKS_START = 1;   
+}
+
+#define TEST_ITER_NUM       6
+#define TEST_RUN_LENGTH     1000
+#define TEST_INTERVAL_MS    2000
+
+volatile uint32_t test_buf[TEST_RUN_LENGTH+1];
+volatile uint32_t test_buf_pos;
+static volatile bool test_finished = true;
+volatile int last_cc = 0;
+
+static void run_test(void)
+{
+    test_buf_pos = 0;
+    test_finished = false;
+}
+
+static void analyze_test_results()
+{
+    uint32_t min = 0xFFFFFFFF;
+    uint32_t max = 0;
+    uint32_t sum = 0;
+    for(int i = 1; i < (TEST_RUN_LENGTH+1); i++)
+    {
+        if(test_buf[i] < min) min = test_buf[i];
+        if(test_buf[i] > max) max = test_buf[i];
+        sum += test_buf[i];
+    }
+    float avg = (float)sum / (float)TEST_RUN_LENGTH;
+    float freq = 1000.0f / ((float)sum / (float)TEST_RUN_LENGTH / 16000.0f);
+    float deviate = ((freq / 32768.0f) - 1.0f) * 1000000.0f;
+    uint8_t log_buf[180];
+    sprintf(log_buf, "Results: Min/Max: %i/%i, Avg: %.2f, Freq: %.1f, Dev_ppm: %.1f", min, max, avg, freq, deviate);
+    NRF_LOG_INFO("%s", log_buf);
+}
+
 int main(void)
 {
-    // This function contains workaround for PAN_028 rev2.0A anomalies 28, 29,30 and 31.
-    int32_t volatile temp;
-
-    nrf_temp_init();
-
     APP_ERROR_CHECK(NRF_LOG_INIT(NULL));
     NRF_LOG_DEFAULT_BACKENDS_INIT();
-    NRF_LOG_INFO("Temperature example started.");
+    NRF_LOG_INFO("\n");
+    NRF_LOG_INFO("RC accuracy test example started\n");
+    
+    NRF_CLOCK->TASKS_LFCLKSTOP = 1;
+    NRF_CLOCK->LFCLKSRC = CLOCK_LFCLKSRC_SRC_RC << CLOCK_LFCLKSRC_SRC_Pos;
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    NRF_CLOCK->TASKS_LFCLKSTART = 1;
+    while(NRF_CLOCK->EVENTS_LFCLKSTARTED == 0);
+    NRF_LOG_INFO("LF clock started");
+    NRF_RTC0->TASKS_STOP = 0;
 
+    NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
+    NRF_CLOCK->TASKS_HFCLKSTART = 1;
+    while(NRF_CLOCK->EVENTS_HFCLKSTARTED == 0);
+    NRF_LOG_INFO("LF clock started (RC osc)");
+    
+    my_timer_init();
+    
     while (true)
     {
-        NRF_TEMP->TASKS_START = 1; /** Start the temperature measurement. */
-
-        /* Busy wait while temperature measurement is not finished, you can skip waiting if you enable interrupt for DATARDY event and read the result in the interrupt. */
-        /*lint -e{845} // A zero has been given as right argument to operator '|'" */
-        while (NRF_TEMP->EVENTS_DATARDY == 0)
+        // Run a number of tests with RC oscillator, without calibration
+        for(int i = 0; i < TEST_ITER_NUM; i++)
         {
-            // Do nothing.
+            run_test();
+            while(!test_finished);
+            analyze_test_results();
+            nrf_delay_ms(TEST_INTERVAL_MS);
         }
-        NRF_TEMP->EVENTS_DATARDY = 0;
+        
+#if 1
+        NRF_CLOCK->EVENTS_DONE = 0;
+        NRF_CLOCK->TASKS_CAL = 1;
+        while(NRF_CLOCK->EVENTS_DONE == 0);
+        NRF_LOG_INFO("RC osc calibrated");
+        
+        // Run a number of tests with RC oscillator calibrated
+        for(int i = 0; i < TEST_ITER_NUM; i++)
+        {
+            run_test();
+            while(!test_finished);
+            analyze_test_results();
+            nrf_delay_ms(TEST_INTERVAL_MS);
+        }
+#endif
+        NRF_LOG_INFO("Changing to external RC clock source...");
+        NRF_CLOCK->TASKS_LFCLKSTOP = 1;
+        NRF_CLOCK->LFCLKSRC = CLOCK_LFCLKSRC_SRC_Xtal << CLOCK_LFCLKSRC_SRC_Pos;
+        NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+        NRF_CLOCK->TASKS_LFCLKSTART = 1;
+        while(NRF_CLOCK->EVENTS_LFCLKSTARTED == 0);
+        NRF_LOG_INFO("Done");
+        
+        // Run a number of tests with external LF clock source
+        for(int i = 0; i < TEST_ITER_NUM; i++)
+        {
+            run_test();
+            while(!test_finished);
+            analyze_test_results();
+            nrf_delay_ms(TEST_INTERVAL_MS);
+        }
+        
+        NRF_LOG_INFO("Tests done");
+        while(1);
+    }
+}
 
-        /**@note Workaround for PAN_028 rev2.0A anomaly 29 - TEMP: Stop task clears the TEMP register. */
-        temp = (nrf_temp_read() / 4);
-
-        /**@note Workaround for PAN_028 rev2.0A anomaly 30 - TEMP: Temp module analog front end does not power down when DATARDY event occurs. */
-        NRF_TEMP->TASKS_STOP = 1; /** Stop the temperature measurement. */
-
-        NRF_LOG_INFO("Actual temperature: %d", (int)temp);
-        nrf_delay_ms(500);
-
-        NRF_LOG_FLUSH();
+void RTC0_IRQHandler(void)
+{
+    static int counter = 0;
+    int cc;
+    if(NRF_RTC0->EVENTS_TICK)
+    {
+        NRF_RTC0->EVENTS_TICK = 0;
+        if(!test_finished)
+        {
+            cc = NRF_TIMER0->CC[0];
+            test_buf[test_buf_pos++] = cc - last_cc;
+            last_cc = cc;
+            if(test_buf_pos >= (TEST_RUN_LENGTH + 1)) test_finished = true;
+        }
     }
 }
 
