@@ -10,12 +10,19 @@ After running the sample the output should look something like this:
 ><info> app: RC accuracy test example started
 >
 ><info> app: LF clock started
+  
 ><info> app: LF clock started (RC osc)
+  
 ><info> app: Results: Min/Max: 468/471, Avg: 469.51, Freq: 34078.0, Dev_ppm: 39978.4
+  
 ><info> app: Results: Min/Max: 468/471, Avg: 469.49, Freq: 34079.7, Dev_ppm: 40029.3
+  
 ><info> app: Results: Min/Max: 468/471, Avg: 469.48, Freq: 34080.5, Dev_ppm: 40053.6
+  
 ><info> app: Results: Min/Max: 468/471, Avg: 469.47, Freq: 34081.0, Dev_ppm: 40069.1
+  
 ><info> app: Results: Min/Max: 468/471, Avg: 469.51, Freq: 34078.2, Dev_ppm: 39984.9
+  
 ><info> app: RC osc calibrated
 ><info> app: Results: Min/Max: 474/493, Avg: 488.30, Freq: 32766.5, Dev_ppm: -46.6
 ><info> app: Results: Min/Max: 475/493, Avg: 488.29, Freq: 32767.7, Dev_ppm: -7.7
