@@ -11,9 +11,9 @@
  <Memory3/>
  <Memory4/>
  <Project>
-  <ProjectSessionItem path="temperature_pca10056"/>
-  <ProjectSessionItem path="temperature_pca10056;temperature_pca10056"/>
-  <ProjectSessionItem path="temperature_pca10056;temperature_pca10056;Application"/>
+  <ProjectSessionItem path="lf_clock_acc_measure_pca10056"/>
+  <ProjectSessionItem path="lf_clock_acc_measure_pca10056;lf_clock_acc_measure_pca10056"/>
+  <ProjectSessionItem path="lf_clock_acc_measure_pca10056;lf_clock_acc_measure_pca10056;Application"/>
  </Project>
  <Register1/>
  <Register2/>
@@ -38,7 +38,7 @@
   <Watches active="0" update="Never"/>
  </Watch4>
  <Files>
-  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="0" codecName="Default"/>
+  <SessionOpenFile windowGroup="DockEditLeft" x="0" y="0" useTextEdit="1" openedFrom="" useBinaryEdit="0" left="0" path="../../../main.c" selected="1" top="140" codecName="Default"/>
  </Files>
  <ARMCrossStudioWindow activeProject="temperature_pca10056" fileDialogDefaultFilter="*.c;*.cpp;*.cxx;*.cc;*.h;*.hpp;*.hxx" autoConnectTarget="J-Link" buildConfiguration="Release" sessionSettings="" debugSearchFileMap="" fileDialogInitialDirectory="" debugSearchPath="" autoConnectCapabilities="3199"/>
 </session>

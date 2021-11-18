@@ -1,6 +1,6 @@
 <!DOCTYPE CrossStudio_Project_File>
-<solution Name="temperature_pca10056" target="8" version="2">
-  <project Name="temperature_pca10056">
+<solution Name="lf_clock_acc_measure_pca10056" target="8" version="2">
+  <project Name="lf_clock_acc_measure_pca10056">
     <configuration
       Name="Common"
       arm_architecture="v7EM"
