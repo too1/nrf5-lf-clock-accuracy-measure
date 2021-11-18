@@ -69,9 +69,9 @@ static void my_timer_init(void)
     NRF_RTC0->TASKS_START = 1;   
 }
 
-#define TEST_ITER_NUM       6
+#define TEST_ITER_NUM       5
 #define TEST_RUN_LENGTH     1000
-#define TEST_INTERVAL_MS    2000
+#define TEST_INTERVAL_MS    800
 
 volatile uint32_t test_buf[TEST_RUN_LENGTH+1];
 volatile uint32_t test_buf_pos;
@@ -103,13 +103,25 @@ static void analyze_test_results()
     NRF_LOG_INFO("%s", log_buf);
 }
 
+static void run_test_loop(void)
+{
+    for(int i = 0; i < TEST_ITER_NUM; i++)
+    {
+        run_test();
+        while(!test_finished);
+        analyze_test_results();
+        nrf_delay_ms(TEST_INTERVAL_MS);
+        NRF_LOG_FLUSH();
+    }
+}
+
 int main(void)
 {
     APP_ERROR_CHECK(NRF_LOG_INIT(NULL));
     NRF_LOG_DEFAULT_BACKENDS_INIT();
     NRF_LOG_INFO("\n");
     NRF_LOG_INFO("RC accuracy test example started\n");
-    
+
     NRF_CLOCK->TASKS_LFCLKSTOP = 1;
     NRF_CLOCK->LFCLKSRC = CLOCK_LFCLKSRC_SRC_RC << CLOCK_LFCLKSRC_SRC_Pos;
     NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
@@ -128,29 +140,18 @@ int main(void)
     while (true)
     {
         // Run a number of tests with RC oscillator, without calibration
-        for(int i = 0; i < TEST_ITER_NUM; i++)
-        {
-            run_test();
-            while(!test_finished);
-            analyze_test_results();
-            nrf_delay_ms(TEST_INTERVAL_MS);
-        }
+        run_test_loop();
         
 #if 1
+        // Run a number of tests with RC oscillator calibrated
         NRF_CLOCK->EVENTS_DONE = 0;
         NRF_CLOCK->TASKS_CAL = 1;
         while(NRF_CLOCK->EVENTS_DONE == 0);
         NRF_LOG_INFO("RC osc calibrated");
         
-        // Run a number of tests with RC oscillator calibrated
-        for(int i = 0; i < TEST_ITER_NUM; i++)
-        {
-            run_test();
-            while(!test_finished);
-            analyze_test_results();
-            nrf_delay_ms(TEST_INTERVAL_MS);
-        }
+        run_test_loop();
 #endif
+        // Run a number of tests with external LF clock source
         NRF_LOG_INFO("Changing to external RC clock source...");
         NRF_CLOCK->TASKS_LFCLKSTOP = 1;
         NRF_CLOCK->LFCLKSRC = CLOCK_LFCLKSRC_SRC_Xtal << CLOCK_LFCLKSRC_SRC_Pos;
@@ -159,16 +160,11 @@ int main(void)
         while(NRF_CLOCK->EVENTS_LFCLKSTARTED == 0);
         NRF_LOG_INFO("Done");
         
-        // Run a number of tests with external LF clock source
-        for(int i = 0; i < TEST_ITER_NUM; i++)
-        {
-            run_test();
-            while(!test_finished);
-            analyze_test_results();
-            nrf_delay_ms(TEST_INTERVAL_MS);
-        }
+        run_test_loop();        
+
         
         NRF_LOG_INFO("Tests done");
+        NRF_LOG_FLUSH();
         while(1);
     }
 }
