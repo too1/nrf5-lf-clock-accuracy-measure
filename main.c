@@ -37,28 +37,11 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-/** @file
-* @defgroup temperature_example_main main.c
-* @{
-* @ingroup temperature_example
-* @brief Temperature Example Application main file.
-* @details
-* This file contains the source code for a sample application using the temperature sensor.
-* This contains workaround for PAN_028 rev2.0A anomalies 28, 29,30 and 31. PAN 43 is not covered.
-*  - PAN_028 rev2.0A anomaly 28 - TEMP: Negative measured values are not represented correctly
-*  - PAN_028 rev2.0A anomaly 29 - TEMP: Stop task clears the TEMP register.
-*  - PAN_028 rev2.0A anomaly 30 - TEMP: Temp module analog front end does not power down when DATARDY event occurs.
-*  - PAN_028 rev2.0A anomaly 31 - TEMP: Temperature offset value has to be manually loaded to the TEMP module
-*  - PAN_028 rev2.0A anomaly 43 - TEMP: Using PPI between DATARDY event and START task is not functional.
-*
-*/
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "nrf.h"
 #include "nrf_delay.h"
-#include "nrf_temp.h"
 #include "app_error.h"
 #include "bsp.h"
 
